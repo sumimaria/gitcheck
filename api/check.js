@@ -1,9 +1,9 @@
 // api/check.js
 export default async function handler(req, res) {
-  const { repo, users } = req.body; // Expecting { repo: "owner/repo", users: ["user1", "user2"] }
+  const { repo, users } = req.body;
   
   if (!repo || !users || !Array.isArray(users)) {
-    return res.status(400).json({ error: "Invalid request. Need repo and users array." });
+    return res.status(400).json({ error: "Invalid request." });
   }
 
   const headers = {
@@ -16,14 +16,9 @@ export default async function handler(req, res) {
     let page = 1;
     let keepFetching = true;
 
-    // Fetch all stargazers of the repository
-    while (keepFetching && page <= 30) { // Limit to 3000 stars for safety/speed
+    while (keepFetching && page <= 30) { 
       const response = await fetch(`https://api.github.com/repos/${repo}/stargazers?per_page=100&page=${page}`, { headers });
-      
-      if (!response.ok) {
-        if (response.status === 403) throw new Error("Rate limit exceeded");
-        throw new Error("Repository not found or private");
-      }
+      if (!response.ok) throw new Error("Repository not found or private");
 
       const data = await response.json();
       if (data.length === 0) break;
@@ -33,15 +28,23 @@ export default async function handler(req, res) {
       page++;
     }
 
-    // Filter the provided list to see who matches
-    const starredList = users.filter(username => 
-      allStargazers.has(username.trim().toLowerCase())
-    );
+    // --- LOGIC CHANGE HERE ---
+    const starredList = [];
+    const notStarredList = [];
+
+    users.forEach(username => {
+        const cleanName = username.trim().toLowerCase();
+        if (allStargazers.has(cleanName)) {
+            starredList.push(username.trim());
+        } else {
+            notStarredList.push(username.trim());
+        }
+    });
 
     res.status(200).json({ 
-      found: starredList,
-      totalChecked: users.length,
-      starCount: allStargazers.size
+      starred: starredList,
+      notStarred: notStarredList,
+      totalChecked: users.length
     });
 
   } catch (error) {
