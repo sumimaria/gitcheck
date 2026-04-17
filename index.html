@@ -1,48 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GitHub Star Auditor</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #f6f8fa; padding: 40px; display: flex; justify-content: center; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 500px; border: 1px solid #d0d7de; }
+        input, button, textarea { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: 1px solid #d0d7de; box-sizing: border-box; }
+        button { background: #2ea44f; color: white; font-weight: bold; border: none; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #2c974b; }
+        .results { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; }
+        .found-item { background: #dafbe1; color: #1a7f37; padding: 5px 10px; margin: 5px; border-radius: 4px; display: inline-block; font-size: 14px; border: 1px solid #4ac26b; }
+        .loader { color: #57606a; text-align: center; font-style: italic; }
+    </style>
+</head>
+<body>
+
 <div class="card">
-    <h2>Star Auditor</h2>
+    <h2 style="margin:0 0 10px 0">Star Auditor</h2>
+    <p style="color: #57606a; font-size: 14px;">Upload a CSV/Text file of usernames or type one below.</p>
+
+    <label>Target Repo</label>
+    <input type="text" id="repoInput" placeholder="kerala-blockchain-academy/ethereum-developer-program">
+
+    <label>Username(s)</label>
+    <input type="text" id="singleUser" placeholder="Enter single username">
+    <div style="text-align: center; color: #888; font-size: 12px;">- OR -</div>
+    <input type="file" id="fileInput" accept=".csv, .txt">
+
     <button onclick="runAudit()">Run Audit</button>
 
     <div id="status"></div>
-    
-    <div id="resultsGrid" style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
-        <div>
-            <h4 style="color:#1a7f37">Starred ⭐</h4>
-            <div id="starredList"></div>
-        </div>
-        <div>
-            <h4 style="color:#cf222e">Not Starred ❌</h4>
-            <div id="notStarredList"></div>
-        </div>
-    </div>
+    <div id="resultsList"></div>
 </div>
-
-<style>
-    /* New styles for the lists */
-    .item { padding: 5px 8px; margin: 4px 0; border-radius: 4px; font-size: 13px; border: 1px solid #eee; }
-    .is-starred { background: #dafbe1; border-color: #4ac26b; color: #1a7f37; }
-    .is-not-starred { background: #fff1f0; border-color: #ffccc7; color: #cf222e; }
-</style>
 
 <script>
     async function runAudit() {
         const repo = document.getElementById('repoInput').value.trim();
         const singleUser = document.getElementById('singleUser').value.trim();
         const fileInput = document.getElementById('fileInput');
-        
-        let userArray = singleUser ? [singleUser] : [];
+        const status = document.getElementById('status');
+        const resultsList = document.getElementById('resultsList');
+
+        let userArray = [];
+        if (singleUser) userArray.push(singleUser);
+
+        // Process File if present
         if (fileInput.files.length > 0) {
             const text = await fileInput.files[0].text();
+            // Split by newline or comma, filter out empty strings
             const fileUsers = text.split(/[\n,]+/).map(u => u.trim()).filter(u => u);
             userArray = [...userArray, ...fileUsers];
         }
 
-        const status = document.getElementById('status');
-        const starredDiv = document.getElementById('starredList');
-        const notStarredDiv = document.getElementById('notStarredList');
+        if (!repo || userArray.length === 0) return alert("Missing Repo or Users!");
 
-        status.innerText = "Auditing stars...";
-        starredDiv.innerHTML = "";
-        notStarredDiv.innerHTML = "";
+        status.innerHTML = `<div class="loader">Scanning repository stargazers...</div>`;
+        resultsList.innerHTML = "";
 
         try {
             const response = await fetch('/api/check', {
@@ -50,20 +64,23 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ repo, users: userArray })
             });
+
             const data = await response.json();
 
-            status.innerHTML = `Checked <b>${data.totalChecked}</b> users.`;
-            
-            data.starred.forEach(name => {
-                starredDiv.innerHTML += `<div class="item is-starred">${name}</div>`;
-            });
-
-            data.notStarred.forEach(name => {
-                notStarredDiv.innerHTML += `<div class="item is-not-starred">${name}</div>`;
-            });
-
+            if (data.error) {
+                status.innerHTML = `<p style="color:red">Error: ${data.error}</p>`;
+            } else {
+                status.innerHTML = `<strong>Results:</strong> Found ${data.found.length} stars out of ${data.totalChecked} checked usernames.`;
+                data.found.forEach(name => {
+                    resultsList.innerHTML += `<div class="found-item">⭐ ${name}</div>`;
+                });
+                if (data.found.length === 0) resultsList.innerHTML = "<p>No matches found.</p>";
+            }
         } catch (err) {
-            status.innerText = "Error running audit.";
+            status.innerHTML = "Server error. Check Vercel logs.";
         }
     }
 </script>
+
+</body>
+</html>
