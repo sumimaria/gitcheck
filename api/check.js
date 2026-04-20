@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     let allStargazers = new Set();
     let page = 1;
     let keepFetching = true;
-
+    console.log("Fetching StarGazers");
     // Fetch all stargazers of the repository
     while (keepFetching && page <= 30) { // Limit to 3000 stars for safety/speed
       const response = await fetch(`https://api.github.com/repos/${repo}/stargazers?per_page=100&page=${page}`, { headers });
@@ -32,6 +32,8 @@ export default async function handler(req, res) {
       if (data.length < 100) keepFetching = false;
       page++;
     }
+    console.log("Fetching finished");
+    console.log(allStargazers);
     console.log(`Fetched ${allStargazers.size} stargazers for ${repo}`,allStargazers);
 
     // Filter the provided list to see who matches
