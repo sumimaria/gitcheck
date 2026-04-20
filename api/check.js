@@ -40,9 +40,13 @@ export default async function handler(req, res) {
     const starredList = users.filter(username => 
       allStargazers.has(username.trim().toLowerCase())
     );
+    const unStarredList = users.filter(username => 
+      !allStargazers.has(username.trim().toLowerCase())
+    );
 
     res.status(200).json({ 
       found: starredList,
+      notFound: unStarredList,
       totalChecked: users.length,
       starCount: allStargazers.size
     });

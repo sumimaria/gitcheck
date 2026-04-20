@@ -74,6 +74,9 @@
                 data.found.forEach(name => {
                     resultsList.innerHTML += `<div class="found-item">⭐ ${name}</div>`;
                 });
+                data.notFound.forEach(name => {
+                    resultsList.innerHTML += `<div class="found-item">❌ ${name}</div>`;
+                });
                 if (data.found.length === 0) resultsList.innerHTML = "<p>No matches found.</p>";
             }
         } catch (err) {
