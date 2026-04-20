@@ -32,6 +32,7 @@ export default async function handler(req, res) {
       if (data.length < 100) keepFetching = false;
       page++;
     }
+    console.log(`Fetched ${allStargazers.size} stargazers for ${repo}`,allStargazers);
 
     // Filter the provided list to see who matches
     const starredList = users.filter(username => 
